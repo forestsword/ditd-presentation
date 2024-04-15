@@ -1,23 +1,14 @@
 
 
-.PHONY = create-cluster repos install-local
+.PHONY = create-cluster repos install-local-operator
 create-cluster:
 	kind create cluster
 
 repos:
-	helm repo add jetstack https://charts.jetstack.io --force-update
 	helm repo add open-telemetry https://open-telemetry.github.io/opentelemetry-helm-charts
 	helm repo update
 
-install-local-cert-manager:
-	helm install \
-  cert-manager jetstack/cert-manager \
-  --namespace cert-manager \
-  --create-namespace \
-  --version v1.14.4 \
-  --set installCRDs=true
-
-install-local-otel-operator:
+install-local-operator:
 	helm install \
   opentelemetry-operator open-telemetry/opentelemetry-operator \
 	--set admissionWebhooks.certManager.enabled=false \
