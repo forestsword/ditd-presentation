@@ -41,8 +41,10 @@ const (
 )
 
 type Test struct {
-	Name          string
-	ValuesFile    string
+	Name       string
+	ValuesFile string
+	// SetValues is an option for render
+	// see https://pkg.go.dev/github.com/gruntwork-io/terratest/modules/helm#Options
 	SetValues     map[string]string
 	InputTemplate string
 	Namespace     string

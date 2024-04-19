@@ -1,13 +1,12 @@
 ---
-# Source: collection/templates/collector.yaml
 apiVersion: opentelemetry.io/v1alpha1
 kind: OpenTelemetryCollector
 metadata:
   name: collection
-  namespace: collection
+  namespace: '{{ .Release.Namespace }}'
 spec:
   mode: deployment
-  replicaas: 2
+  replicaas: {{ .Values.replicas | int }}
   config: |
     receivers:
       otlp:
