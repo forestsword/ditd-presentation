@@ -52,7 +52,7 @@ kubeconform: manifests opentelemetry.io_opentelemetrycollectors.json
 		manifests
 
 unit-tests-${VERSION}:
-	$(MAKE) -C ./chart-${VERSION}/test-templates unit-tests
+	$(MAKE) -C ./chart-${VERSION} unit-tests
 
 unit-tests-config:
 	$(MAKE) -C ./chart/test-config unit-tests
