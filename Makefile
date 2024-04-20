@@ -1,5 +1,7 @@
-OTEL_OPERATOR_VERSION=v0.97.0
-VERSION=v1
+OTEL_OPERATOR_VERSION = v0.97.0
+VERSION ?= v1
+
+default: test-${VERSION}
 
 .PHONY = create-cluster repos install-local-operator
 create-cluster:
@@ -8,6 +10,9 @@ create-cluster:
 repos:
 	helm repo add open-telemetry https://open-telemetry.github.io/opentelemetry-helm-charts
 	helm repo update
+
+.PHONY: test-${VERSION}
+test-${VERSION}: lint-${VERSION} kubeconform-${VERSION} validate-${VERSION} unit-tests-${VERSION}
 
 install-local-operator:
 	helm install \
@@ -24,8 +29,8 @@ manifests-${VERSION}: lint-${VERSION}
 		--debug \
 		--output-dir $@
 
-validate-0: manifests-0 opentelemetry.io_opentelemetrycollectors.yaml
-	 kubectl-validate ./manifests-0 --local-crds .
+validate-${VERSION}: manifests-${VERSION} opentelemetry.io_opentelemetrycollectors.yaml
+	 kubectl-validate ./manifests-${VERSION} --local-crds .
 
 .PHONY: lint-${VERSION}
 lint-${VERSION}:
@@ -33,7 +38,12 @@ lint-${VERSION}:
 
 .PHONY: install-${VERSION}
 install-${VERSION}:
-	helm upgrade --install --set global.clusterName=local test --create-namespace -n collection ./chart-${VERSION}
+	helm upgrade --install \
+		--set global.clusterName=local \
+		--create-namespace \
+		-n collection \
+		test \
+		./chart-${VERSION}
 
 install-kubeconform:
 	go install github.com/yannh/kubeconform/cmd/kubeconform@latest
@@ -41,19 +51,8 @@ install-kubeconform:
 opentelemetry.io_opentelemetrycollectors.yaml:
 	wget https://raw.githubusercontent.com/open-telemetry/opentelemetry-operator/${OTEL_OPERATOR_VERSION}/bundle/manifests/opentelemetry.io_opentelemetrycollectors.yaml
 
-opentelemetry.io_opentelemetrycollectors.json: opentelemetry.io_opentelemetrycollectors.yaml
-	cat $< | yq -o=json '.spec.versions[0].schema.openAPIV3Schema' > $@
-
-kubeconform: manifests opentelemetry.io_opentelemetrycollectors.json
-	kubeconform \
-		-strict \
-		-summary \
-		-schema-location opentelemetry.io_opentelemetrycollectors.json \
-		manifests
+kubeconform-${VERSION}: manifests-${VERSION}
+	kubeconform -ignore-missing-schemas manifests-${VERSION}
 
 unit-tests-${VERSION}:
 	$(MAKE) -C ./chart-${VERSION} unit-tests
-
-unit-tests-config:
-	$(MAKE) -C ./chart/test-config unit-tests
-
