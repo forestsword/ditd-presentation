@@ -1,4 +1,4 @@
-module github.com/forestsword/ditd-presentation/chart-0/test-templates
+module github.com/forestsword/ditd-presentation/chart-v1/test-templates
 
 go 1.21.3
 

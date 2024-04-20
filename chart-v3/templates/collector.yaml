@@ -1,0 +1,33 @@
+---
+apiVersion: opentelemetry.io/v1alpha1
+kind: OpenTelemetryCollector
+metadata:
+  name: collection
+  namespace: '{{ .Release.Namespace }}'
+spec:
+  mode: deployment
+  replicas: {{ .Values.replicas | int }}
+  config: |
+    receivers:
+      otlp:
+        protocols:
+          grpc:
+          http:
+            # Just an example, this is weird to do
+            endpoint: ${env:OTELCOL_HTTP_ENDPOINT}
+    processors:
+      transform:
+        trace_statements:
+          - context: span
+            statements:
+              - 'replace_pattern(attributes["target"], "pattern", "replacement")'
+
+    exporters:
+      debug:
+
+    service:
+      pipelines:
+        traces:
+          receivers: [otlp]
+          processors: []
+          exporters: [debug]
