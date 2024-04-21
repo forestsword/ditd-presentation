@@ -9,8 +9,8 @@ ottlStatements:
       # regex: "/(pvd|provider-godzilla|login|restart)/(.*)\\\\?.*"
       # This is the actual expression that should be in the otel configuration
       # OMFG you have to use `quote` function in the template
-      regex: "/(pvd|provider-godzilla|login|restart)/(.*)\\?.*"
-      replacement: "/$$1/$$2"  # $ must be escapted to $$ says OTTL
+      regex: "/(pvd|provider-g00dzilla|login|restart)/(.*)\\?.*"
+      replacement: "/$1/$2"  # $ must be escapted to $$ says OTTL # But not in our version?
       target: "http.url"
       tests:
         - expect: "https://company.com/pvd/some/api/token"
