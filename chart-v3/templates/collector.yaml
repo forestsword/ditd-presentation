@@ -19,8 +19,8 @@ spec:
       transform:
         trace_statements:
           - context: span
-            statements:
-              - 'replace_pattern(attributes["target"], "pattern", "replacement")'
+            statements: {{ range .Values.ottlStatements.contextSpan }}
+              - '{{ .function }}(attributes[{{ quote .target }}], {{ quote .regex }}, {{ quote .replacement }})'{{end }}
 
     exporters:
       debug:

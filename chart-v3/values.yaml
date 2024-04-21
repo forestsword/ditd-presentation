@@ -1,2 +1,23 @@
 ---
 replicas: 2
+ottlStatements:
+  contextSpan:
+    # See https://github.com/open-telemetry/opentelemetry-collector-contrib/tree/main/pkg/ottl/ottlfuncs#replace_pattern
+    - function: "replace_pattern"
+      name: "URI Replacement"
+      # Escaping is important https://github.com/helm/helm/issues/11817
+      # regex: "/(pvd|provider-godzilla|login|restart)/(.*)\\\\?.*"
+      # This is the actual expression that should be in the otel configuration
+      # OMFG you have to use `quote` function in the template
+      regex: "/(pvd|provider-godzilla|login|restart)/(.*)\\?.*"
+      replacement: "/$$1/$$2"  # $ must be escapted to $$ says OTTL
+      target: "http.url"
+      tests:
+        - expect: "https://company.com/pvd/some/api/token"
+          input: "https://company.com/pvd/some/api/token?super_secret=secret"
+        - expect: "https://company.com/provider-godzilla/some/api/token"
+          input: "https://company.com/provider-godzilla/some/api/token?super_secret=secret"
+        - expect: "https://company.com/login/some/api/token"
+          input: "https://company.com/login/some/api/token?super_secret=secret"
+        - expect: "https://company.com/restart/some/api/token"
+          input: "https://company.com/restart/some/api/token?super_secret=secret"
