@@ -39,16 +39,6 @@ type ScenarioTest struct {
 }
 
 func TestReplacements(t *testing.T) {
-	stdFunctions := ottlfuncs.StandardFuncs[pcommon.Value]()
-	target := &ottl.StandardGetSetter[pcommon.Value]{
-		Getter: func(ctx context.Context, tCtx pcommon.Value) (any, error) {
-			return tCtx.Str(), nil
-		},
-		Setter: func(ctx context.Context, tCtx pcommon.Value, val any) error {
-			tCtx.SetStr(val.(string))
-			return nil
-		},
-	}
 	content, err := os.ReadFile("../values.yaml")
 	if err != nil {
 		t.Fatal("cannot read values file")
@@ -58,19 +48,30 @@ func TestReplacements(t *testing.T) {
 	if err != nil {
 		t.Fatal("cannot unmarshal values")
 	}
+	stdFunctions := ottlfuncs.StandardFuncs[pcommon.Value]()
 
 	for _, scenario := range values.OTTLStatements.ContextSpan {
 		for _, test := range scenario.Tests {
 			t.Run(fmt.Sprintf("%s/%s", scenario.Name, test.Expect), func(t *testing.T) {
-				scenarioValue := pcommon.NewValueStr(test.Input)
-				replacePatternFunctionFactory := stdFunctions[scenario.Function]
-				assert.Equal(t, scenario.Function, replacePatternFunctionFactory.Name())
-				args := replacePatternFunctionFactory.CreateDefaultArguments()
+				attributeValueToChange := pcommon.NewValueStr(test.Input)
+
+				factory := stdFunctions[scenario.Function]
+				assert.Equal(t, scenario.Function, factory.Name())
+
+				args := factory.CreateDefaultArguments()
 				argsReal, ok := args.(*ottlfuncs.ReplacePatternArguments[pcommon.Value])
 				if !ok {
 					t.Fatal("not ok")
 				}
-				argsReal.Target = target
+				argsReal.Target = &ottl.StandardGetSetter[pcommon.Value]{
+					Getter: func(ctx context.Context, tCtx pcommon.Value) (any, error) {
+						return tCtx.Str(), nil
+					},
+					Setter: func(ctx context.Context, tCtx pcommon.Value, val any) error {
+						tCtx.SetStr(val.(string))
+						return nil
+					},
+				}
 				argsReal.RegexPattern = scenario.Regex
 				argsReal.Replacement = ottl.StandardStringGetter[pcommon.Value]{
 					Getter: func(context.Context, pcommon.Value) (any, error) {
@@ -82,15 +83,17 @@ func TestReplacements(t *testing.T) {
 					Set: componenttest.NewNopTelemetrySettings(),
 				}
 
-				exprFunc, err := replacePatternFunctionFactory.CreateFunction(fctx, argsReal)
+				exprFunc, err := factory.CreateFunction(fctx, argsReal)
 				assert.NoError(t, err)
 
-				result, err := exprFunc(nil, scenarioValue)
+				// Result is an any type
+				// but attributeValueToChange will be changed
+				result, err := exprFunc(nil, attributeValueToChange)
 				assert.NoError(t, err)
 				assert.Nil(t, result)
 
 				expected := pcommon.NewValueStr(test.Expect)
-				assert.Equal(t, expected, scenarioValue)
+				assert.Equal(t, expected, attributeValueToChange)
 			})
 		}
 	}
