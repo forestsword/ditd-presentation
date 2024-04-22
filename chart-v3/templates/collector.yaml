@@ -21,7 +21,8 @@ spec:
           - context: span
             statements: {{ range .Values.ottlStatements.contextSpan }}
               - '{{ .function }}(attributes[{{ quote .target }}], {{ quote .regex }}, {{ quote .replacement }})'{{end }}
-
+              # Example of how it normally looks:
+              # - replace_pattern(attributes["http.url"], "/(pvd|provider-g00dzilla|login|restart)/(.*)\\?.*", "/$1/$2")
     exporters:
       debug:
 
