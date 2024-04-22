@@ -24,6 +24,7 @@ install-local-operator:
 manifests-${VERSION}: lint-${VERSION}
 	-rm -rf $@
 	helm template local-release ./chart-${VERSION} \
+		--validate \
 		--set global.clusterName=sushi \
 		--namespace=collection \
 		--debug \
@@ -36,14 +37,22 @@ validate-${VERSION}: manifests-${VERSION} opentelemetry.io_opentelemetrycollecto
 lint-${VERSION}:
 	helm lint ./chart-${VERSION} --set global.clusterName=ci
 
+# This is NOT what ArgoCD does:
+# https://argo-cd.readthedocs.io/en/stable/faq/#after-deploying-my-helm-application-with-argo-cd-i-cannot-see-it-with-helm-ls-and-other-helm-commands
 .PHONY: install-${VERSION}
 install-${VERSION}:
 	helm upgrade --install \
 		--set global.clusterName=local \
 		--create-namespace \
 		-n collection \
-		test \
+		local \
 		./chart-${VERSION}
+
+.PHONY: install-${VERSION}
+uninstall-${VERSION}:
+	helm uninstall \
+		-n collection \
+		local 
 
 install-kubeconform:
 	go install github.com/yannh/kubeconform/cmd/kubeconform@latest
