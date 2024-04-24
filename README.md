@@ -8,67 +8,76 @@ Bucharest, Romania April 2024.
 ## Usage
 
 To actually execute the Helm chart you will need a Kubernetes cluster
-and Helm installed.
+and `kubectl` and Helm installed.
 [Kind](https://kind.sigs.k8s.io) is a good way to do this locally.
 
-## Overall Questions?
+### Local Cluster Setup
 
-- What are the guarantees of our tools
-  or the technologies we use?
-- Can we verify our logic?
-  Can we verify what goes in and what comes out is what we expect;
-  i.e. can we introspect?
+You will need [`kind`](https://kind.sigs.k8s.io/docs/user/quick-start/).
+Once installed run `make create-cluster`:
 
-## The Story
+```
+ ditd-presentation  % make create-cluster
+kind create cluster
+Creating cluster "kind" ...
+ ✓ Ensuring node image (kindest/node:v1.29.2) 🖼
+ ✓ Preparing nodes 📦
+ ✓ Writing configuration 📜
+ ✓ Starting control-plane 🕹️
+ ✓ Installing CNI 🔌
+ ✓ Installing StorageClass 💾
+Set kubectl context to "kind-kind"
+You can now use your cluster with:
 
-### Week 1
+kubectl cluster-info --context kind-kind
 
-API server rejects what Helm says should be valid.
+Not sure what to do next? 😅  Check out https://kind.sigs.k8s.io/docs/user/quick-start/
+```
 
-Basic validation: `kubeconform`
+Install the OpenTelemetry Helm Repo `make repos`:
 
-### Week 2
+```
+ditd-presentation  % make repos
+helm repo add open-telemetry https://open-telemetry.github.io/opentelemetry-helm-charts
+```
 
-API server accepts but the collector crash-loops
+Deploy the OpenTelemetry Operator `make install-local-operator`:
 
-Basic validation: `otelcol validate` ... TODO
+```
+helm upgrade --install \
+        opentelemetry-operator open-telemetry/opentelemetry-operator \
+        --set admissionWebhooks.certManager.enabled=false \
+        --set admissionWebhooks.autoGenerateCert.enabled=true
+Release "opentelemetry-operator" does not exist. Installing it now.
+NAME: opentelemetry-operator
+LAST DEPLOYED: Wed Apr 24 13:54:56 2024
+NAMESPACE: default
+STATUS: deployed
+REVISION: 1
+NOTES:
+opentelemetry-operator has been installed. Check its status by running:
+  kubectl --namespace default get pods -l "release=opentelemetry-operator"
 
-### Week 3
+Visit https://github.com/open-telemetry/opentelemetry-operator for instructions on how to create & configure OpenTelemetryCollector and Instrumentation custom resources by using the Operator.
+```
 
-Do the business - how to avoid constant manual verification
+You should now see the operator running:
 
-Basic validation: Manual verification after deployment
-
-## Conclusions
-
-- Learn the language of the tools you use
-  If the technologies were using Python this code would be in Python
-- The otel project is great.
-  I don't have to copy code.
-  Kudos to helm as well.
-- How can otel make this simpler?
-  - components
-  - is golang the right way?
-    Lessons from prom/amtool?
-- Give them tests let them eat bread
-- Safer stress free deployments
-- Why not create your own distribution and component?
+```
+ ditd-presentation  % kubectl get pod -n default
+NAME                                     READY   STATUS    RESTARTS   AGE
+opentelemetry-operator-7fb78c8fb-cc2b2   2/2     Running   0          15s
+```
 
 ## Errata
 
-### `kubeconform`
+### Basic Manifest Validations
 
-You need first `openapi2jsonschema`:
+#### `kubeconform`
 
-```
-pip install openapi2jsonschema
-```
+See [`kubeconform`](https://github.com/yannh/kubeconform)
 
-Convert but shit's broken... TODO
-
-then run `kubeconform`... TODO
-
-### `kubectl-validate`
+#### `kubectl-validate`
 
 See [kubectl-validate](https://github.com/kubernetes-sigs/kubectl-validate)
 for offline/client-side validation.

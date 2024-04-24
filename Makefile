@@ -17,7 +17,7 @@ test: lint kubeconform validate unit-tests
 
 .PHONY: install-local-operator
 install-local-operator: repos create-cluster
-	helm install --upgrade \
+	helm upgrade --install \
 		opentelemetry-operator open-telemetry/opentelemetry-operator \
 		--set admissionWebhooks.certManager.enabled=false \
 		--set admissionWebhooks.autoGenerateCert.enabled=true
@@ -34,16 +34,24 @@ manifests: lint
 
 .PHONY: validate
 validate: manifests opentelemetry.io_opentelemetrycollectors.yaml
-	 kubectl-validate ./manifests-${VERSION} --local-crds .
+	 kubectl-validate ./manifests --local-crds .
+
+.PHONY: namespace
+namespace:
+	-kubectl create namespace collection
 
 .PHONY: lint
 lint:
 	helm lint ./chart-${VERSION} --set global.clusterName=ci
 
+.PHONY: fake-argo-deploy
+fake-argo-deploy: manifests namespace
+	kubectl apply -f manifests/collection/templates
+
 # This is NOT what ArgoCD does:
 # https://argo-cd.readthedocs.io/en/stable/faq/#after-deploying-my-helm-application-with-argo-cd-i-cannot-see-it-with-helm-ls-and-other-helm-commands
-.PHONY: install
-install:
+.PHONY: helm-install
+helm-install:
 	helm upgrade --install \
 		--set global.clusterName=local \
 		--create-namespace \
@@ -51,8 +59,8 @@ install:
 		local \
 		./chart-${VERSION}
 
-.PHONY: uninstall
-uninstall:
+.PHONY: helm-uninstall
+helm-uninstall:
 	helm uninstall \
 		-n collection \
 		local 
@@ -66,7 +74,7 @@ opentelemetry.io_opentelemetrycollectors.yaml:
 
 .PHONY: kubeconform
 kubeconform: manifests
-	kubeconform -ignore-missing-schemas manifests-${VERSION}
+	kubeconform -ignore-missing-schemas manifests
 
 .PHONY: unit-tests
 unit-tests:
